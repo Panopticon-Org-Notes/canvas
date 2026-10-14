@@ -1,0 +1,30 @@
+# A tag «1.2.0» (or «v1.2.0»), equal to the manifest's version, makes a GitHub release with the files the app
+# downloads from the catalog: manifest.json, main.js and styles.css (when there is one).
+name: Release
+on:
+  push:
+    tags: ['*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: if [ -f package-lock.json ]; then npm ci; else npm install; fi
+      - run: npm test --if-present
+      - run: npm run build
+      - name: The tag is the manifest's version
+        run: |
+          v=$(node -p "require('./dist/manifest.json').version")
+          if [ "$v" != "${GITHUB_REF_NAME#v}" ]; then echo "The tag $GITHUB_REF_NAME is not the manifest version $v"; exit 1; fi
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          files="dist/manifest.json dist/main.js"
+          if [ -f dist/styles.css ]; then files="$files dist/styles.css"; fi
+          gh release create "$GITHUB_REF_NAME" $files --title "$GITHUB_REF_NAME" --generate-notes

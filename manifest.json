@@ -1,0 +1,73 @@
+{
+  "id": "canvas",
+  "name": "Холст",
+  "version": "0.1.0",
+  "description": "Mindmap org-файла или одной ветки: дерево заголовков, которое правится прямо на карте — новые узлы, переименование, перестановка, цвет ветки. Файл остаётся обычным Org.",
+  "icon": "M10 7.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM12.5 10h2.5M5 10h2.5M15 5.5h2.5v3H15zM15 11.5h2.5v3H15zM2.5 8.5H5v3H2.5zM14 7l1-1.5M14 13l1 1.5",
+  "author": "Yury Bogdanov",
+  "api": "^1.9",
+  "main": "main.js",
+  "permissions": [
+    "index.read",
+    "files.edit"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "id": "canvas.mindmap",
+        "title": "Холст: mindmap файла",
+        "synonyms": [
+          "mindmap",
+          "карта",
+          "майндмэп",
+          "интеллект-карта"
+        ]
+      },
+      {
+        "id": "canvas.mindmapBranch",
+        "title": "Холст: mindmap ветки",
+        "synonyms": [
+          "mindmap",
+          "карта",
+          "ветка",
+          "майндмэп"
+        ]
+      }
+    ],
+    "fileViews": [
+      {
+        "id": "canvas.mindmap",
+        "title": "Mindmap",
+        "icon": "M10 7.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM12.5 10h2.5M5 10h2.5M15 5.5h2.5v3H15zM15 11.5h2.5v3H15zM2.5 8.5H5v3H2.5z"
+      }
+    ],
+    "settings": [
+      {
+        "section": "Холст",
+        "icon": "M10 7.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM12.5 10h2.5M5 10h2.5M15 5.5h2.5v3H15zM15 11.5h2.5v3H15zM2.5 8.5H5v3H2.5z",
+        "groups": [
+          {
+            "caption": "MINDMAP",
+            "fields": [
+              {
+                "key": "mmLevels",
+                "type": "choice",
+                "look": "segments",
+                "where": "local",
+                "label": "Раскрыто уровней",
+                "default": 3,
+                "options": [
+                  { "value": 2, "label": "2" },
+                  { "value": 3, "label": "3" },
+                  { "value": 4, "label": "4" },
+                  { "value": 0, "label": "все" }
+                ],
+                "hint": "Глубже ветки свёрнуты в «+N»; что свернули или развернули руками — запоминается"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

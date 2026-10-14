@@ -6,6 +6,7 @@ import type { Ctx, HeadingRef, Named, Tx } from '@panopticon/api';
 import type { Head } from './tree';
 
 export const VIEW = 'canvas.mindmap';
+export const BOARD = 'canvas.board';
 
 /** The folded branches by hand: per map (a file, or a file's branch), node key → folded. */
 type Folds = Record<string, Record<string, boolean>>;
@@ -14,6 +15,11 @@ class Canvas {
   ctx!: Ctx;
   /** «Mindmap: раскрыто уровней»: 0 — all. */
   levels = $state(3);
+  /** The canvas: «Новая заметка — цвет» ('' none), «Привязка к сетке». */
+  noteColor = $state('3');
+  snapGrid = $state(true);
+  /** The canvas shown now: what its commands (⌘G, ⌘D) act on. */
+  board: { path: string; group(): void; duplicate(): void } | null = null;
   folds = $state<Folds>({});
   /** The tab shown: its file and its view. */
   active = $state<{ path: string | null; view: string | null }>({ path: null, view: null });
@@ -32,8 +38,11 @@ class Canvas {
     });
   }
   readSettings() {
-    const v = Number(this.ctx.settings.values().mmLevels);
+    const all = this.ctx.settings.values();
+    const v = Number(all.mmLevels);
     this.levels = [0, 2, 3, 4].includes(v) ? v : 3;
+    this.noteColor = typeof all.noteColor === 'string' && /^([1-6]|)$/.test(all.noteColor) ? all.noteColor : '3';
+    this.snapGrid = all.snapGrid !== false;
   }
 
   /** `fn` on each change of the file (an edit here, in the text, on disk). */

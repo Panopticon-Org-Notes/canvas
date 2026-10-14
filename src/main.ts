@@ -2,8 +2,10 @@
 // untouched. An outside plugin: it sees the app only through `ctx` (API 1.9).
 import { definePlugin } from '@panopticon/api';
 import { mount, unmount } from 'svelte';
-import { canvas, VIEW } from './state.svelte';
+import { BOARD, canvas, VIEW } from './state.svelte';
 import Mindmap from './Mindmap.svelte';
+import CanvasView from './CanvasView.svelte';
+import { EMPTY } from './jsoncanvas';
 
 export default definePlugin({
   activate(ctx) {
@@ -16,6 +18,30 @@ export default definePlugin({
         return () => void unmount(app);
       },
     });
+    // a `.canvas` file (its type in the manifest): the free canvas
+    ctx.ui.fileView(BOARD, {
+      render: (el, file, view) => {
+        const app = mount(CanvasView, { target: el, props: { path: file.path, view } });
+        return () => void unmount(app);
+      },
+    });
+    ctx.commands.on('canvas.new', async () => {
+      const v = await ctx.ui.form({
+        title: 'Новый холст',
+        submit: 'Создать',
+        groups: [{ fields: [{ type: 'text', key: 'name', label: 'Название', placeholder: 'Холст' }] }],
+        validate: (x) => (String(x.name ?? '').trim() && !/[/\\:]/.test(String(x.name)) ? null : 'Нужно название без «/» и «:»'),
+      });
+      if (!v) return;
+      const dir = canvas.active.path?.includes('/') ? canvas.active.path.slice(0, canvas.active.path.lastIndexOf('/') + 1) : '';
+      const path = `${dir}${String(v.name).trim().replace(/\.canvas$/i, '')}.canvas`;
+      if (!(await ctx.edit!.ensureFile(path))) return;
+      await ctx.edit!.transaction('Новый холст', (tx) => tx.update(path, (t) => (t.trim() ? null : EMPTY)));
+      await ctx.commands.run('file.open', { path });
+    });
+    ctx.commands.on('canvas.group', () => canvas.board?.group());
+    ctx.commands.on('canvas.duplicate', () => canvas.board?.duplicate());
+
     const branch = (h: { path: string; line: number; title: string }) => void ctx.ui.openFileView(VIEW, { path: h.path, heading: h });
     // the menu of a heading in the editor and the navigator
     ctx.ui.headingAction({ label: 'Показать ветку как mindmap', run: branch });

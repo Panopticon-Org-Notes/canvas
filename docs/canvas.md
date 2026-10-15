@@ -40,6 +40,8 @@ A card whose heading cannot be found turns grey with «Заголовок не �
 
 | Key / gesture | Action |
 | --- | --- |
+| `S` | a shape (a note) follows the pointer; a click puts it there and its text is typed at once; `⎋` lets it go |
+| `A` | an arrow by two clicks: every node shows its side dots; click a node near the side the arrow starts from, then the node it goes to (its nearest side is lit); `⎋` or a right click lets it go |
 | click, `⇧`-click, a frame drawn on the empty place, `⌘A` | choose |
 | drag, arrows (`⇧` — by 10) | move; snapped to the 22 pt grid (a setting), `⌘` while dragging — no snap. Nodes inside a group's box move with it, as in Obsidian |
 | the corner handle | resize |

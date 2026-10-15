@@ -6,6 +6,8 @@ import { BOARD, canvas, VIEW } from './state.svelte';
 import Mindmap from './Mindmap.svelte';
 import CanvasView from './CanvasView.svelte';
 import { EMPTY } from './jsoncanvas';
+import { copyExcalidraw, exportExcalidraw } from './exporting';
+import { spreadOnCanvas } from './spreadRun';
 
 export default definePlugin({
   activate(ctx) {
@@ -39,12 +41,29 @@ export default definePlugin({
       await ctx.edit!.transaction('Новый холст', (tx) => tx.update(path, (t) => (t.trim() ? null : EMPTY)));
       await ctx.commands.run('file.open', { path });
     });
+    // the export of the map or the canvas shown (ТЗ 39 §4)
+    ctx.commands.on('canvas.exportExcalidraw', () => {
+      const x = canvas.exporter?.();
+      if (x) void exportExcalidraw(x);
+      else ctx.ui.notify('Откройте mindmap или холст, чтобы экспортировать его');
+    });
+    ctx.commands.on('canvas.copyExcalidraw', () => {
+      const x = canvas.exporter?.();
+      if (x) void copyExcalidraw(x);
+      else ctx.ui.notify('Откройте mindmap или холст, чтобы скопировать его');
+    });
     ctx.commands.on('canvas.group', () => canvas.board?.group());
     ctx.commands.on('canvas.duplicate', () => canvas.board?.duplicate());
 
     const branch = (h: { path: string; line: number; title: string }) => void ctx.ui.openFileView(VIEW, { path: h.path, heading: h });
     // the menu of a heading in the editor and the navigator
     ctx.ui.headingAction({ label: 'Показать ветку как mindmap', run: branch });
+    ctx.ui.headingAction({ label: 'Разложить на холсте…', run: (h) => void spreadOnCanvas(h) });
+    ctx.commands.on('canvas.spread', () => {
+      const h = ctx.ui.currentHeading();
+      if (h) void spreadOnCanvas(h);
+      else ctx.ui.notify('Поставьте курсор на заголовок, чтобы разложить его на холсте');
+    });
 
     ctx.commands.on('canvas.mindmap', async () => {
       if (!(await ctx.ui.showAs(VIEW))) ctx.ui.notify('Откройте org-файл, чтобы показать его как mindmap');

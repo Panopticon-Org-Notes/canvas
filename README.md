@@ -19,9 +19,10 @@ The canvas is a `.canvas` file in [JSON Canvas](https://jsoncanvas.org), so it o
   in the file show at once; the text opens at the side), files, links, groups and arrows with labels; drag headings
   and files from the app's lists, paste links; colours as in Obsidian.
 
-Export to Excalidraw, PNG and SVG is coming next.
+- **Export** — «Экспорт ▾»: a `.excalidraw` file, Excalidraw's clipboard, PNG, SVG.
+- **«Разложить на холсте»** — a heading and its children as live cards on a new or an existing canvas.
 
-Requires Panopticon with plugin API 1.10 or later. Permissions: `index.read`, `files.edit`.
+Requires Panopticon with plugin API 1.11 or later. Permissions: `index.read`, `files.edit`, `clipboard`.
 
 ## Install
 
@@ -32,6 +33,7 @@ From the catalog: «Настройки → Плагины → Каталог п�
 
 - [The mindmap](docs/mindmap.md): what is drawn, keys, colours, settings, what is stored where.
 - [The free canvas](docs/canvas.md): the file, nodes, keys, colours, compatibility with Obsidian.
+- [Export and «Разложить на холсте»](docs/export.md): Excalidraw, PNG, SVG; a branch as cards.
 
 ## Development
 

@@ -7,6 +7,8 @@
   import { addEdge, addNode, duplicate, group, moveNodes, nearestSide, patchEdge, patchNode, remove, resizeNode, setColor, snap, within } from './board';
   import { colorOf, PALETTE } from './colors';
   import { titleHtml } from './title';
+  import { exportMenu, type Exportable } from './exporting';
+  import { canvasScene } from './scenes';
 
   // A free canvas (ТЗ 39 §2): a `.canvas` file in JSON Canvas — notes, live cards of headings, files, links, groups and
   // edges. Each change is written at once as one step of ⌘Z; the file opens in Obsidian too.
@@ -444,10 +446,23 @@
   const keyUp = (e: KeyboardEvent) => {
     if (e.key === ' ') space = false;
   };
+  // «Экспорт ▾» (ТЗ 39 §4)
+  const exportable = (): Exportable => ({
+    name: (path.split('/').pop() ?? path).replace(/\.canvas$/i, ''),
+    file: path,
+    scene: () => canvasScene(cv ?? { nodes: [], edges: [] }, cardOf, root!),
+    visible: () => ({ x: -pan.x / zoom, y: -pan.y / zoom, w: vw / zoom, h: vh / zoom }),
+  });
+  function exportAt(e: MouseEvent) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    exportMenu(exportable(), { x: r.right - 300, y: r.bottom + 4 }, root!);
+  }
   onMount(() => {
+    canvas.exporter = exportable;
     canvas.board = { group: () => void groupSel(), duplicate: () => void dup(), path };
     return () => {
       if (canvas.board?.path === path) canvas.board = null;
+      if (canvas.exporter === exportable) canvas.exporter = null;
     };
   });
 
@@ -579,7 +594,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<div class="cv" bind:this={root} tabindex="0" role="application" aria-label="Холст" onkeydown={keys} onkeyup={keyUp} onpaste={paste}>
+<div class="cv" bind:this={root} tabindex="0" role="application" aria-label="Холст" onfocusin={() => (canvas.exporter = exportable)} onkeydown={keys} onkeyup={keyUp} onpaste={paste}>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="cv-stage" class:dropping bind:this={stageEl} bind:clientWidth={vw} bind:clientHeight={vh} use:wheel
     onpointerdown={stageDown} ondblclick={(e) => e.target === e.currentTarget && void addNote(toWorld(e.clientX, e.clientY))}
@@ -684,6 +699,7 @@
     <button class="cv-z" title="100%" onclick={() => zoomAt(1 / zoom)}>{Math.round(zoom * 100)}%</button>
     <button aria-label="Увеличить" title="Увеличить ⌘+" onclick={() => zoomAt(1.2)}>+</button>
     <button title="Вписать ⇧1" onclick={fit}>Вписать</button>
+    <button class="cv-exp" aria-haspopup="menu" onclick={exportAt}>Экспорт ▾</button>
   </div>
 
   {#if colorBar && barAt}
@@ -770,6 +786,7 @@
   .cv-tools { position: absolute; top: 12px; right: 14px; z-index: 3; display: flex; align-items: center; gap: 6px; }
   .cv-tools button { height: 24px; min-width: 26px; padding: 0 8px; border: 0; border-radius: 5px; background: var(--field); color: var(--fg2); font: 12px var(--ui); }
   .cv-tools .cv-z { min-width: 48px; background: none; }
+  .cv-tools .cv-exp { margin-left: 6px; font-weight: 600; color: var(--fg); }
   .cv-hint { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 3; max-width: calc(100% - 32px); box-sizing: border-box; white-space: nowrap; overflow: hidden; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1); }
   .cv-add { display: flex; align-items: center; gap: 4px; padding: 4px; }
   .cv-add button { height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 0; border-radius: 7px; background: none; color: var(--fg); font: 12.5px var(--ui); }

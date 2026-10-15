@@ -18,8 +18,12 @@ class Canvas {
   /** The canvas: «Новая заметка — цвет» ('' none), «Привязка к сетке». */
   noteColor = $state('3');
   snapGrid = $state(true);
+  /** «Разложить на холсте: уровней». */
+  spreadLevels = $state(2);
   /** The canvas shown now: what its commands (⌘G, ⌘D) act on. */
   board: { path: string; group(): void; duplicate(): void } | null = null;
+  /** What «Экспорт» of the palette exports: the map or the canvas shown last. */
+  exporter: (() => import('./exporting').Exportable) | null = null;
   folds = $state<Folds>({});
   /** The tab shown: its file and its view. */
   active = $state<{ path: string | null; view: string | null }>({ path: null, view: null });
@@ -43,6 +47,7 @@ class Canvas {
     this.levels = [0, 2, 3, 4].includes(v) ? v : 3;
     this.noteColor = typeof all.noteColor === 'string' && /^([1-6]|)$/.test(all.noteColor) ? all.noteColor : '3';
     this.snapGrid = all.snapGrid !== false;
+    this.spreadLevels = [1, 2, 3].includes(Number(all.spreadLevels)) ? Number(all.spreadLevels) : 2;
   }
 
   /** `fn` on each change of the file (an edit here, in the text, on disk). */

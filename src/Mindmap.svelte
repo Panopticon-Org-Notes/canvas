@@ -7,6 +7,9 @@
   import { curve, layout, step, type Dir, type Edge, type Placed } from './layout';
   import { colorValue, PALETTE } from './colors';
   import { titleHtml } from './title';
+  import { exportMenu, type Exportable } from './exporting';
+  import { mindmapScene } from './scenes';
+  import { spreadOnCanvas } from './spreadRun';
 
   // The mindmap of an Org file, or of one heading's branch (ТЗ 39 §1): the tree of headings drawn from the middle,
   // edited in place — each change one transaction of the core (⌘Z). Nothing is kept but the branches folded by hand.
@@ -459,6 +462,7 @@
         if (!isHeading(n)) return [];
         const items: (MenuItem | 'sep')[] = [{ label: 'Цвет ветки…', run: () => (colorBar = true) }];
         if (n.parent) items.push({ label: 'Показать ветку как mindmap', run: () => void ctx.ui.openFileView(VIEW, { path, heading: refOf(n) }) });
+        items.push({ label: 'Разложить на холсте…', run: () => void spreadOnCanvas(refOf(n)) });
         if (n.parent) items.push('sep', { label: 'Удалить', danger: true, run: () => void remove(n) });
         return items;
       },
@@ -545,6 +549,21 @@
     }
   }
 
+  // ---- «Экспорт ▾» (ТЗ 39 §4) ----
+  const exportable = (): Exportable => ({
+    name: scope ? scope.title : (fileTitle(text) ?? name),
+    scene: () => mindmapScene(lay!, root!),
+    visible: () => ({ x: -pan.x / zoom, y: -pan.y / zoom, w: vw / zoom, h: vh / zoom }),
+  });
+  function exportAt(e: MouseEvent) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if (lay) exportMenu(exportable(), { x: r.right - 300, y: r.bottom + 4 }, root!);
+  }
+  onMount(() => {
+    canvas.exporter = exportable;
+    return () => void (canvas.exporter === exportable && (canvas.exporter = null));
+  });
+
   // ---- drawing ----
   const wire = (e: Edge) => (e.to.node.depth === 1 ? (e.to.node.color ?? 'var(--acc)') : (e.to.node.color ?? 'var(--mm-wire)'));
   const hidden = (n: MNode) => (isFolded(n) ? n.size : 0);
@@ -566,7 +585,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<div class="mm" bind:this={root} tabindex="0" role="application" aria-label="Mindmap" onkeydown={keys}>
+<div class="mm" bind:this={root} tabindex="0" role="application" aria-label="Mindmap" onfocusin={() => (canvas.exporter = exportable)} onkeydown={keys}>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="mm-stage" bind:this={stage} bind:clientWidth={vw} bind:clientHeight={vh} use:wheel onpointerdown={stageDown}>
     {#if loaded && !tree}
@@ -623,6 +642,7 @@
     <button class="mm-z" title="100%" onclick={() => zoomAt(1 / zoom)}>{Math.round(zoom * 100)}%</button>
     <button aria-label="Увеличить" title="Увеличить ⌘+" onclick={() => zoomAt(1.2)}>+</button>
     <button class="mm-fit" title="Вписать ⇧1" onclick={fit}>Вписать</button>
+    <button class="mm-exp" aria-haspopup="menu" onclick={exportAt}>Экспорт ▾</button>
   </div>
 
   {#if colorBar && current && isHeading(current) && barAt}
@@ -699,6 +719,7 @@
   .mm-tools button { height: 24px; min-width: 26px; padding: 0 8px; border: 0; border-radius: 5px; background: var(--field); color: var(--fg2); font: 12px var(--ui); }
   .mm-tools button:hover { color: var(--fg); }
   .mm-tools .mm-z { min-width: 48px; background: none; }
+  .mm-tools .mm-exp { margin-left: 6px; font-weight: 600; color: var(--fg); }
 
   .mm-hint { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 3; display: flex; align-items: center; gap: 14px; height: 34px; padding: 0 14px; box-sizing: border-box; border-radius: 9px; background: var(--bg); border: 1px solid var(--line); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08); font-size: 12px; color: var(--fg2); white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; }
   .mm-hint b { font: 400 12px var(--mono); color: var(--fg); }

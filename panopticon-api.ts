@@ -2,7 +2,7 @@
 // `ctx` from the core when it is activated. Every call is asynchronous or gives back a Dispose, and only data goes
 // in and out (JSON, HeadingRef, Date): no object of the core leaves it, so the plugins can later run isolated.
 
-export const API_VERSION = '1.10.0';
+export const API_VERSION = '1.11.0';
 
 export type Dispose = () => void;
 export type Values = Record<string, unknown>;
@@ -380,7 +380,7 @@ export interface Ctx {
     keyOf(id: string): string;
     /** A command of the plugin, or of the core: `file.open` {path, line?, beside?, focus?, neighbour?} (`neighbour`:
      *  in the other pane, made on the left when there is none, as from an agenda), `heading.reveal` {ref},
-     *  `agenda.open`, `settings.open` {section?}, `heading.status` / `heading.schedule` / `heading.deadline` / `heading.tags` / `heading.priority`
+     *  `agenda.open`, `settings.open` {section?}, `file.reveal` {path} (the file in Finder, 1.11), `heading.status` / `heading.schedule` / `heading.deadline` / `heading.tags` / `heading.priority`
      *  {ref} (the palette's step for it; the heading's file is the one shown), `capture.open` (the quick entry),
      *  `inbox.pickFile`, `inbox.createFile`. */
     run(id: string, arg?: unknown): Promise<void>;
@@ -416,6 +416,10 @@ export interface Ctx {
     menu(items: (MenuItem | 'sep')[], at: { x: number; y: number }): void;
     /** A choice from a list in the palette; null: ⎋. */
     choose(o: { title: string; placeholder?: string; items: ChooseItem[] }): Promise<string | null>;
+    /** The system panel «Сохранить как…» for an export (a picture, a file for another program): `name` — the name
+     *  offered, `filter` — the kind; the content as `text` or as `base64` bytes. The path written; null — cancelled.
+     *  The user chooses where: no permission is needed. Since 1.11. */
+    saveFile(o: { name: string; title?: string; filter?: { name: string; extensions: string[] }; text?: string; base64?: string }): Promise<string | null>;
     /** Close the tabs of a view of the plugin. */
     close(viewId: string): void;
     /** A control of the core in the plugin's element: the calendar of three months, the choice of a place in

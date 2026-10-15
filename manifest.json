@@ -1,11 +1,11 @@
 {
   "id": "canvas",
   "name": "Холст",
-  "version": "0.1.0",
-  "description": "Mindmap org-файла или одной ветки: дерево заголовков, которое правится прямо на карте — новые узлы, переименование, перестановка, цвет ветки. Файл остаётся обычным Org.",
+  "version": "0.2.0",
+  "description": "Mindmap org-файла или ветки и свободный холст .canvas (JSON Canvas, как в Obsidian): заметки, живые карточки заголовков, файлы, ссылки, группы, стрелки, цвета. Файлы остаются обычными Org и JSON.",
   "icon": "M10 7.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM12.5 10h2.5M5 10h2.5M15 5.5h2.5v3H15zM15 11.5h2.5v3H15zM2.5 8.5H5v3H2.5zM14 7l1-1.5M14 13l1 1.5",
   "author": "Yury Bogdanov",
-  "api": "^1.9",
+  "api": "^1.10",
   "main": "main.js",
   "permissions": [
     "index.read",
@@ -32,6 +32,38 @@
           "ветка",
           "майндмэп"
         ]
+      },
+      {
+        "id": "canvas.new",
+        "title": "Холст: новый",
+        "synonyms": [
+          "canvas",
+          "холст",
+          "доска",
+          "obsidian"
+        ]
+      },
+      {
+        "id": "canvas.group",
+        "title": "Холст: сгруппировать",
+        "keys": [
+          "⌘G"
+        ],
+        "scope": "view",
+        "synonyms": [
+          "группа"
+        ]
+      },
+      {
+        "id": "canvas.duplicate",
+        "title": "Холст: дубликат",
+        "keys": [
+          "⌘D"
+        ],
+        "scope": "view",
+        "synonyms": [
+          "копия"
+        ]
       }
     ],
     "fileViews": [
@@ -39,6 +71,11 @@
         "id": "canvas.mindmap",
         "title": "Mindmap",
         "icon": "M10 7.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM12.5 10h2.5M5 10h2.5M15 5.5h2.5v3H15zM15 11.5h2.5v3H15zM2.5 8.5H5v3H2.5z"
+      },
+      {
+        "id": "canvas.board",
+        "title": "Холст",
+        "icon": "M3 4h6v5H3zM11 11h6v5h-6zM9 6.5h3.5V11"
       }
     ],
     "settings": [
@@ -57,16 +94,89 @@
                 "label": "Раскрыто уровней",
                 "default": 3,
                 "options": [
-                  { "value": 2, "label": "2" },
-                  { "value": 3, "label": "3" },
-                  { "value": 4, "label": "4" },
-                  { "value": 0, "label": "все" }
+                  {
+                    "value": 2,
+                    "label": "2"
+                  },
+                  {
+                    "value": 3,
+                    "label": "3"
+                  },
+                  {
+                    "value": 4,
+                    "label": "4"
+                  },
+                  {
+                    "value": 0,
+                    "label": "все"
+                  }
                 ],
                 "hint": "Глубже ветки свёрнуты в «+N»; что свернули или развернули руками — запоминается"
               }
             ]
+          },
+          {
+            "caption": "ХОЛСТ",
+            "fields": [
+              {
+                "key": "noteColor",
+                "type": "choice",
+                "look": "menu",
+                "where": "local",
+                "label": "Новая заметка — цвет",
+                "default": "3",
+                "options": [
+                  {
+                    "value": "",
+                    "label": "без цвета"
+                  },
+                  {
+                    "value": "1",
+                    "label": "красный"
+                  },
+                  {
+                    "value": "2",
+                    "label": "оранжевый"
+                  },
+                  {
+                    "value": "3",
+                    "label": "жёлтый"
+                  },
+                  {
+                    "value": "4",
+                    "label": "зелёный"
+                  },
+                  {
+                    "value": "5",
+                    "label": "бирюзовый"
+                  },
+                  {
+                    "value": "6",
+                    "label": "фиолетовый"
+                  }
+                ]
+              },
+              {
+                "key": "snapGrid",
+                "type": "switch",
+                "where": "local",
+                "label": "Привязка к сетке",
+                "default": true,
+                "hint": "Шаг 22 pt; с ⌘ — без привязки"
+              }
+            ]
           }
         ]
+      }
+    ],
+    "fileTypes": [
+      {
+        "ext": "canvas",
+        "title": "Холст",
+        "icon": "M3 4h6v5H3zM11 11h6v5h-6zM9 6.5h3.5V11",
+        "view": "canvas.board",
+        "template": "{\n  \"nodes\": [],\n  \"edges\": []\n}\n",
+        "newLabel": "Новый холст"
       }
     ]
   }

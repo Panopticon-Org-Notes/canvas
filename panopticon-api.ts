@@ -2,7 +2,7 @@
 // `ctx` from the core when it is activated. Every call is asynchronous or gives back a Dispose, and only data goes
 // in and out (JSON, HeadingRef, Date): no object of the core leaves it, so the plugins can later run isolated.
 
-export const API_VERSION = '1.9.0';
+export const API_VERSION = '1.10.0';
 
 export type Dispose = () => void;
 export type Values = Record<string, unknown>;
@@ -13,6 +13,24 @@ export interface Plugin {
 }
 /** The plugin's module exports it as default: `export default definePlugin({ activate(ctx) { … } })`. */
 export const definePlugin = (p: Plugin): Plugin => p;
+
+/** What the app's lists give when dragged (the navigator's files and headings, «Структура», the agenda, search, tags,
+ *  the lists of tasks): a heading with its :ID: when it has one, or a file (relative). Since 1.10. */
+export type Dropped = { kind: 'heading'; ref: HeadingRef; id?: string } | { kind: 'file'; path: string };
+export const DRAG_TYPE = 'application/x-panopticon';
+/** The app's thing being dragged over or dropped on the plugin's element (`e.dataTransfer`); null — not one of them. */
+export function droppedOf(dt: DataTransfer | null): Dropped | null {
+  try {
+    const v = JSON.parse(dt?.getData(DRAG_TYPE) || 'null');
+    if (v?.kind === 'heading' && typeof v.ref?.path === 'string') return { kind: 'heading', ref: { path: v.ref.path, line: Number(v.ref.line), title: String(v.ref.title) }, ...(typeof v.id === 'string' ? { id: v.id } : {}) };
+    if (v?.kind === 'file' && typeof v.path === 'string') return { kind: 'file', path: v.path };
+  } catch {
+    // not ours
+  }
+  return null;
+}
+/** Is the app's thing being dragged (its data are read only on the drop; while over, only the types are known). */
+export const draggingOurs = (dt: DataTransfer | null) => !!dt?.types.includes(DRAG_TYPE);
 
 // ---- data ---------------------------------------------------------------------------------------------------------
 
@@ -133,6 +151,9 @@ export interface Tx {
    *  (`before` / `after`, 1.5). */
   move(h: HeadingRef, to: { under: HeadingRef } | { file: string } | { before: HeadingRef } | { after: HeadingRef }): void;
   remove(h: HeadingRef): void;
+  /** The heading's :ID:, written when it has none (a new UUID): what a link or a card on a canvas holds on to. null —
+   *  not found. Since 1.10. */
+  ensureId(h: HeadingRef): string | null;
   /** The file changed by the plugin's own function: null leaves it. A fallback for a structure of the plugin's own in
    *  the file — the operations above are the core's to check and to merge (ТЗ 30). */
   update(path: string, fn: (text: string) => string | null): void;
@@ -470,6 +491,8 @@ export interface Ctx {
      *  Since 1.7. */
     body(ref: HeadingRef): Promise<string | null>;
     outline(path: string): Promise<HeadingInfo[]>;
+    /** The heading with this :ID: in any file of the folder; null — none. Since 1.10. */
+    byId(id: string): Promise<HeadingRef | null>;
     files(): Promise<FileInfo[]>;
     /** The named colour of a status in the sets of the file (the plugin draws with var(--p-<colour>)). */
     statusTone(keyword: string, path: string): Promise<Named | null>;

@@ -1,7 +1,8 @@
 # Canvas («Холст») — a Panopticon plugin
 
-Mindmaps of Org files for [Panopticon](https://github.com/YuryBogdanov/OrgNotes). The tree of headings *is* the
-mindmap: every edit on the map is an ordinary edit of the headings, and the file stays plain Org.
+Mindmaps of Org files and a free canvas for [Panopticon](https://github.com/YuryBogdanov/OrgNotes). The tree of
+headings *is* the mindmap: every edit on the map is an ordinary edit of the headings, and the file stays plain Org.
+The canvas is a `.canvas` file in [JSON Canvas](https://jsoncanvas.org), so it opens in Obsidian too.
 
 - **The map of a file** — «Показать как › Mindmap» in a file tab's menu, or the palette command «Холст: mindmap
   файла». The root is the file's `#+TITLE` (else its name); top-level headings are the branches, split between the
@@ -14,9 +15,13 @@ mindmap: every edit on the map is an ordinary edit of the headings, and the file
 - **Branch colours** — six colours (as in Obsidian's canvas) or your own, stored in the heading's `:COLOR:`
   property; headings below take it until they set their own.
 
-The free canvas (`.canvas`, JSON Canvas) and export to Excalidraw, PNG and SVG are coming next.
+- **The free canvas** — «Новый холст» in a folder's menu or «Холст: новый». Notes, live cards of headings (changes
+  in the file show at once; the text opens at the side), files, links, groups and arrows with labels; drag headings
+  and files from the app's lists, paste links; colours as in Obsidian.
 
-Requires Panopticon with plugin API 1.9 or later. Permissions: `index.read`, `files.edit`.
+Export to Excalidraw, PNG and SVG is coming next.
+
+Requires Panopticon with plugin API 1.10 or later. Permissions: `index.read`, `files.edit`.
 
 ## Install
 
@@ -26,6 +31,7 @@ From the catalog: «Настройки → Плагины → Каталог п�
 ## Documentation
 
 - [The mindmap](docs/mindmap.md): what is drawn, keys, colours, settings, what is stored where.
+- [The free canvas](docs/canvas.md): the file, nodes, keys, colours, compatibility with Obsidian.
 
 ## Development
 

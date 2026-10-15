@@ -419,6 +419,12 @@
     if (cmd && e.code === 'KeyG') return done(), void groupSel();
     if (e.shiftKey && e.code === 'Digit1' && !e.metaKey && !e.ctrlKey && !e.altKey) return done(), fit();
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (mode && e.key === 'Escape') {
+      mode = null;
+      return done();
+    }
+    if (!e.shiftKey && e.code === 'KeyS') return done(), startMode('shape');
+    if (!e.shiftKey && e.code === 'KeyA') return done(), startMode('arrow');
     if (e.key === ' ') {
       space = true;
       return done();
@@ -582,13 +588,70 @@
   const SIDES: Side[] = ['top', 'right', 'bottom', 'left'];
   const edgeColor = (e: CEdge) => colorOf(e.color) ?? 'var(--cv-wire)';
   const hints = [
-    { t: 'Заметка', icon: 'M4 3h9l3 3v11H4zM7 8h6M7 11h6', run: () => void addNote() },
+    { t: 'Заметка', key: 'S', icon: 'M4 3h9l3 3v11H4zM7 8h6M7 11h6', run: () => void addNote() },
     { t: 'Заголовок…', icon: 'M4 5h12M4 10h8M4 15h10', run: () => void pickHeading() },
     { t: 'Файл…', icon: 'M5 2.5h6l4 4v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1z', run: () => void pickFile() },
     { t: 'Ссылка', icon: 'M8 12l4-4M7 9l-2 2a2.5 2.5 0 0 0 3.5 3.5l2-2M13 11l2-2a2.5 2.5 0 0 0-3.5-3.5l-2 2', run: () => void askLink() },
     { t: 'Группа', icon: 'M3 4h14v12H3z', run: () => void addGroup() },
   ];
   let hover = $state<string | null>(null);
+
+  // ---- S: a shape that follows the pointer, put down with a click; A: an arrow by two clicks ----
+  type Mode =
+    | { kind: 'shape'; x: number; y: number }
+    | { kind: 'arrow'; x: number; y: number; from: { id: string; side: Side } | null; over: { id: string; side: Side } | null };
+  let mode = $state<Mode | null>(null);
+  /** Where the pointer was last over the stage (the canvas's coordinates): a shape appears there. */
+  let pointer: { x: number; y: number } | null = null;
+  const SHAPE = { w: 250, h: 66 };
+  function startMode(kind: 'shape' | 'arrow') {
+    if (editing) void commitText();
+    colorBar = false;
+    const p = pointer ?? centre();
+    mode = kind === 'shape' ? { kind, x: p.x, y: p.y } : { kind, x: p.x, y: p.y, from: null, over: null };
+  }
+  /** The node under a point of the window and its side nearest it. */
+  function overAt(cx: number, cy: number, not?: string): { id: string; side: Side } | null {
+    const el = (document.elementsFromPoint(cx, cy) as HTMLElement[]).find((t) => t.dataset?.id && t.dataset.id !== not);
+    const n = el ? node(el.dataset.id!) : undefined;
+    if (!n) return null;
+    const w = toWorld(cx, cy);
+    return { id: n.id, side: nearestSide(n, w.x, w.y) };
+  }
+  function modeMove(e: PointerEvent) {
+    const m = mode;
+    if (!m) return;
+    const w = toWorld(e.clientX, e.clientY);
+    pointer = w;
+    if (m.kind === 'shape') mode = { ...m, x: w.x, y: w.y };
+    else mode = { ...m, x: w.x, y: w.y, over: overAt(e.clientX, e.clientY, m.from?.id) };
+  }
+  async function modeDown(e: PointerEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const m = mode;
+    if (!m || !cv) return;
+    if (e.button !== 0) return void (mode = null);
+    if (m.kind === 'shape') {
+      mode = null;
+      const color = canvas.noteColor;
+      const n = await add({ type: 'text', text: '', width: SHAPE.w, height: SHAPE.h, ...(color ? { color } : {}) } as never, { x: m.x, y: m.y }, 'Заметка');
+      if (n) startText(n.id);
+      return;
+    }
+    const o = overAt(e.clientX, e.clientY, m.from?.id);
+    if (!o) return; // a click on the empty place: still choosing
+    if (!m.from) return void (mode = { ...m, from: o, over: null });
+    mode = null;
+    const r = addEdge(cv, m.from.id, m.from.side, o.id, o.side);
+    if (!r) return;
+    await write('Стрелка', r.canvas);
+    choose([]);
+    selEdge = r.id;
+  }
+  /** Where a shape put now would go: its top-left on the grid. */
+  const ghost = $derived(mode?.kind === 'shape' ? { x: snap(mode.x - SHAPE.w / 2, snapOn), y: snap(mode.y - SHAPE.h / 2, snapOn) } : null);
+  const sidePt = (n: CNode, s: Side) => [n.x + (s === 'right' ? n.width : s === 'left' ? 0 : n.width / 2), n.y + (s === 'bottom' ? n.height : s === 'top' ? 0 : n.height / 2)];
   void tick;
   void view;
 </script>
@@ -597,7 +660,7 @@
 <div class="cv" bind:this={root} tabindex="0" role="application" aria-label="Холст" onfocusin={() => (canvas.exporter = exportable)} onkeydown={keys} onkeyup={keyUp} onpaste={paste}>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="cv-stage" class:dropping bind:this={stageEl} bind:clientWidth={vw} bind:clientHeight={vh} use:wheel
-    onpointerdown={stageDown} ondblclick={(e) => e.target === e.currentTarget && void addNote(toWorld(e.clientX, e.clientY))}
+    onpointerdown={stageDown} onpointermove={(e) => !mode && stageEl && (pointer = toWorld(e.clientX, e.clientY))} ondblclick={(e) => e.target === e.currentTarget && void addNote(toWorld(e.clientX, e.clientY))}
     oncontextmenu={(e) => menu(e)} ondragover={dragOver} ondragleave={() => (dropping = false)} ondrop={dropIn}>
     {#if broken}
       <div class="cv-broken" role="alert">Файл не читается как JSON Canvas — он не изменится, пока его не исправят</div>
@@ -627,6 +690,15 @@
               {#if x.e.toEnd !== 'none'}<polygon class="head" points={`${x.end[0]},${x.end[1]} ${x.end[0] - x.dir[0] * 10 - x.dir[1] * 5},${x.end[1] - x.dir[1] * 10 + x.dir[0] * 5} ${x.end[0] - x.dir[0] * 10 + x.dir[1] * 5},${x.end[1] - x.dir[1] * 10 - x.dir[0] * 5}`} />{/if}
             </g>
           {/each}
+          {#if mode?.kind === 'arrow' && mode.from}
+            {@const a = byId.get(mode.from.id)}
+            {@const b = mode.over ? byId.get(mode.over.id) : undefined}
+            {#if a}
+              {@const p = sidePt(a, mode.from.side)}
+              {@const q = b && mode.over ? sidePt(b, mode.over.side) : [mode.x, mode.y]}
+              <path class="cv-linking" d={`M${p[0]} ${p[1]} L${q[0]} ${q[1]}`} />
+            {/if}
+          {/if}
           {#if g?.kind === 'link'}
             {@const a = byId.get(g.from)}
             {#if a}<path class="cv-linking" d={`M${a.x + (g.side === 'right' ? a.width : g.side === 'left' ? 0 : a.width / 2)} ${a.y + (g.side === 'bottom' ? a.height : g.side === 'top' ? 0 : a.height / 2)} L${g.x} ${g.y}`} />{/if}
@@ -680,17 +752,26 @@
               <div class="cv-src"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2.5h6l4 4v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1zM11 2.5v4h4" /></svg><span>{n.file.split('/').slice(0, -1).join('/') || 'файл'}</span></div>
               <div class="cv-t">{n.file.split('/').pop()}</div>
             {/if}
-            {#if (hover === n.id || sel.has(n.id)) && !g && editing !== n.id}
+            {#if mode?.kind === 'arrow'}
+              {#each SIDES as s (s)}<div class="cv-dot {s}" class:on={(mode.from?.id === n.id && mode.from.side === s) || (mode.over?.id === n.id && mode.over.side === s)} role="presentation"></div>{/each}
+            {:else if (hover === n.id || sel.has(n.id)) && !g && editing !== n.id && !mode}
               {#each SIDES as s (s)}<div class="cv-dot {s}" role="presentation" title="Потяните к другой карточке — стрелка" onpointerdown={(e) => dotDown(e, n, s)}></div>{/each}
             {/if}
             {#if sel.size === 1 && sel.has(n.id)}<div class="cv-size" role="presentation" onpointerdown={(e) => sizeDown(e, n)}></div>{/if}
           </div>
         {/each}
+        {#if ghost}
+          <div class="cv-node text cv-ghost" style="left:{ghost.x}px;top:{ghost.y}px;width:{SHAPE.w}px;height:{SHAPE.h}px;{canvas.noteColor ? look({ type: 'text', color: canvas.noteColor } as CNode) : ''}" aria-hidden="true"></div>
+        {/if}
         {#if g?.kind === 'frame'}
           {@const r = frameRect(g)}
           <div class="cv-frame" style="left:{r.x}px;top:{r.y}px;width:{r.width}px;height:{r.height}px"></div>
         {/if}
       </div>
+    {/if}
+    {#if mode}
+      <!-- the place's clicks while a shape or an arrow is being put -->
+      <div class="cv-modelayer" class:arrow={mode.kind === 'arrow'} role="presentation" onpointermove={modeMove} onpointerdown={(e) => void modeDown(e)} oncontextmenu={(e) => (e.preventDefault(), (mode = null))}></div>
     {/if}
   </div>
 
@@ -714,10 +795,14 @@
       <input class="cv-pick" type="color" bind:this={custom} value={colorOf(chosenColor) ?? '#0a64d6'} onchange={(e) => void paint((e.currentTarget as HTMLInputElement).value.toLowerCase())} tabindex="-1" aria-hidden="true" />
     </div>
     <div class="cv-hint cv-note">Цвет карточки, группы или стрелки — «color» в JSON Canvas: 6 цветов как в Obsidian или свой</div>
+  {:else if mode}
+    <div class="cv-hint cv-note" role="status">
+      {mode.kind === 'shape' ? 'Кликните, чтобы положить фигуру' : mode.from ? 'Кликните вторую фигуру — стрелка к ней' : 'Кликните фигуру у точки, откуда пойдёт стрелка'} · ⎋ отмена
+    </div>
   {:else if !peek}
     <div class="cv-hint cv-add" role="toolbar" aria-label="Добавить на холст">
       {#each hints as h (h.t)}
-        <button onclick={h.run}><svg viewBox="0 0 20 20" aria-hidden="true"><path d={h.icon} /></svg>{h.t}</button>
+        <button onclick={h.run} title={h.key ? `${h.t.replace('…', '')} — ${h.key}` : undefined}><svg viewBox="0 0 20 20" aria-hidden="true"><path d={h.icon} /></svg>{h.t}</button>
       {/each}
     </div>
   {/if}
@@ -781,6 +866,10 @@
   .cv-dot.left { left: -6px; top: calc(50% - 5px); }
   .cv-dot.right { right: -6px; top: calc(50% - 5px); }
   .cv-size { position: absolute; z-index: 2; right: -5px; bottom: -5px; width: 10px; height: 10px; border-radius: 2px; background: var(--acc); cursor: nwse-resize; }
+  .cv-ghost { opacity: 0.6; pointer-events: none; border-style: dashed; }
+  .cv-modelayer { position: absolute; inset: 0; z-index: 2; cursor: copy; }
+  .cv-modelayer.arrow { cursor: crosshair; }
+  .cv-dot.on { background: var(--acc); transform: scale(1.3); }
   .cv-frame { position: absolute; border: 1px solid var(--acc); background: color-mix(in srgb, var(--acc) 8%, transparent); pointer-events: none; }
 
   .cv-tools { position: absolute; top: 12px; right: 14px; z-index: 3; display: flex; align-items: center; gap: 6px; }

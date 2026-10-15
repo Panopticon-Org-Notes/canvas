@@ -90,3 +90,57 @@ export function nearestSide(n: { x: number; y: number; width: number; height: nu
 export function within(c: Canvas, r: { x: number; y: number; width: number; height: number }): string[] {
   return c.nodes.filter((n) => n.x < r.x + r.width && r.x < n.x + n.width && n.y < r.y + r.height && r.y < n.y + n.height).map((n) => n.id);
 }
+
+/** A heading to lay out (ТЗ 39 §3): its place, its :ID:, its colour. */
+export interface Spread {
+  path: string;
+  title: string;
+  level: number;
+  id: string | null;
+  color: string | null;
+}
+export const CARD = { w: 280, h: 120, dx: 80, dy: 28 };
+/**
+ * A heading and the ones under it (`levels` below it) as live cards, a tree from left to right: each level a column,
+ * a parent in the middle of its children; arrows from a parent to its children. `heads[0]` is the heading; the rest
+ * follow it in the file's order. `at` — the top-left corner.
+ */
+export function spread(heads: Spread[], levels: number, at: { x: number; y: number }): { nodes: CNode[]; edges: CEdge[] } {
+  if (!heads.length) return { nodes: [], edges: [] };
+  const top = heads[0].level;
+  type T = { h: Spread; kids: T[]; id: string; y: number };
+  const root: T = { h: heads[0], kids: [], id: newId(), y: 0 };
+  const stack: T[] = [root];
+  for (const h of heads.slice(1)) {
+    if (h.level <= top) break;
+    if (h.level - top > levels) continue;
+    while (stack.length > 1 && stack[stack.length - 1].h.level >= h.level) stack.pop();
+    const t: T = { h, kids: [], id: newId(), y: 0 };
+    stack[stack.length - 1].kids.push(t);
+    stack.push(t);
+  }
+  let row = 0;
+  const place = (t: T) => {
+    if (!t.kids.length) t.y = row++ * (CARD.h + CARD.dy);
+    else {
+      t.kids.forEach(place);
+      t.y = (t.kids[0].y + t.kids[t.kids.length - 1].y) / 2;
+    }
+  };
+  place(root);
+  const nodes: CNode[] = [];
+  const edges: CEdge[] = [];
+  const walk = (t: T, depth: number) => {
+    const c = t.h.color ? (({ red: '1', orange: '2', yellow: '3', green: '4', cyan: '5', purple: '6' }) as Record<string, string>)[t.h.color] ?? t.h.color : null;
+    nodes.push({
+      id: t.id, type: 'file', file: t.h.path, subpath: '#' + t.h.title, ...(t.h.id ? { orgId: t.h.id } : {}),
+      x: snap(at.x + depth * (CARD.w + CARD.dx)), y: snap(at.y + t.y), width: CARD.w, height: CARD.h, ...(c ? { color: c } : {}),
+    });
+    for (const k of t.kids) {
+      edges.push({ id: newId(), fromNode: t.id, fromSide: 'right', toNode: k.id, toSide: 'left', toEnd: 'arrow' });
+      walk(k, depth + 1);
+    }
+  };
+  walk(root, 0);
+  return { nodes, edges };
+}

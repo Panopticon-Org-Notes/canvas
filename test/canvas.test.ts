@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EMPTY, edgePath, facing, groupsOf, parseCanvas, writeCanvas, type Canvas } from '../src/jsoncanvas';
-import { addEdge, carried, duplicate, group, moveNodes, nearestSide, remove, setColor, snap, within } from '../src/board';
+import { addEdge, carried, duplicate, group, moveNodes, nearestSide, remove, setColor, snap, spread, within } from '../src/board';
 
 const OBSIDIAN = `{
 	"nodes":[
@@ -92,5 +92,20 @@ describe('the edits', () => {
     expect(nearestSide({ x: 0, y: 0, width: 100, height: 100 }, 95, 50)).toBe('right');
     expect(nearestSide({ x: 0, y: 0, width: 100, height: 100 }, 50, 2)).toBe('top');
     expect(within(c as Canvas, { x: 650, y: -10, width: 400, height: 400 })).toEqual(['c', 'd']);
+  });
+});
+
+describe('«Разложить на холсте»', () => {
+  const S = (title: string, level: number, color: string | null = null) => ({ path: 'plan.org', title, level, id: 'id-' + title, color });
+  it('a tree from left to right, a parent in the middle of its children, two levels', () => {
+    const r = spread([S('Платформа', 1, 'green'), S('ДЦ', 2), S('Учения', 3), S('Сценарий', 4), S('Алерты', 2), S('Найм', 1)], 2, { x: 0, y: 0 });
+    expect(r.nodes.map((n) => (n as { subpath: string }).subpath)).toEqual(['#Платформа', '#ДЦ', '#Учения', '#Алерты']);
+    const [p, dc, u, al] = r.nodes;
+    expect(p).toMatchObject({ type: 'file', file: 'plan.org', orgId: 'id-Платформа', color: '4', x: 0 });
+    expect(dc.x).toBe(snap(360));
+    expect(u.x).toBe(snap(720));
+    expect(dc.y).toBe(u.y); // its one child level with it
+    expect(p.y).toBe(snap((0 + 148) / 2));
+    expect(r.edges.map((e) => [e.fromNode, e.toNode])).toEqual([[p.id, dc.id], [dc.id, u.id], [p.id, al.id]]);
   });
 });

@@ -1,15 +1,16 @@
 {
   "id": "canvas",
   "name": "Холст",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Mindmap org-файла или ветки и свободный холст .canvas (JSON Canvas, как в Obsidian): заметки, живые карточки заголовков, файлы, ссылки, группы, стрелки, цвета. Файлы остаются обычными Org и JSON.",
   "icon": "M10 7.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM12.5 10h2.5M5 10h2.5M15 5.5h2.5v3H15zM15 11.5h2.5v3H15zM2.5 8.5H5v3H2.5zM14 7l1-1.5M14 13l1 1.5",
   "author": "Yury Bogdanov",
-  "api": "^1.10",
+  "api": "^1.11",
   "main": "main.js",
   "permissions": [
     "index.read",
-    "files.edit"
+    "files.edit",
+    "clipboard"
   ],
   "contributes": {
     "commands": [
@@ -63,6 +64,34 @@
         "scope": "view",
         "synonyms": [
           "копия"
+        ]
+      },
+      {
+        "id": "canvas.exportExcalidraw",
+        "title": "Холст: экспорт в Excalidraw",
+        "synonyms": [
+          "excalidraw",
+          "экспорт",
+          "export"
+        ]
+      },
+      {
+        "id": "canvas.copyExcalidraw",
+        "title": "Холст: копировать для Excalidraw",
+        "synonyms": [
+          "excalidraw",
+          "буфер",
+          "скопировать"
+        ]
+      },
+      {
+        "id": "canvas.spread",
+        "title": "Холст: разложить ветку на холсте…",
+        "synonyms": [
+          "разложить",
+          "холст",
+          "canvas",
+          "карточки"
         ]
       }
     ],
@@ -163,6 +192,29 @@
                 "label": "Привязка к сетке",
                 "default": true,
                 "hint": "Шаг 22 pt; с ⌘ — без привязки"
+              },
+              {
+                "key": "spreadLevels",
+                "type": "choice",
+                "look": "segments",
+                "where": "local",
+                "label": "Разложить на холсте: уровней",
+                "default": 2,
+                "options": [
+                  {
+                    "value": 1,
+                    "label": "1"
+                  },
+                  {
+                    "value": 2,
+                    "label": "2"
+                  },
+                  {
+                    "value": 3,
+                    "label": "3"
+                  }
+                ],
+                "hint": "Сколько уровней под заголовком ложится карточками"
               }
             ]
           }

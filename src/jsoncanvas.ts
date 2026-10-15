@@ -148,7 +148,7 @@ export function facing(a: { x: number; y: number; width: number; height: number 
   return dy >= 0 ? ['bottom', 'top'] : ['top', 'bottom'];
 }
 /** An edge's curve from side to side (an SVG path), and its middle (for the label). */
-export function edgePath(a: CNode, b: CNode, e: CEdge): { d: string; mid: [number, number]; end: [number, number]; dir: [number, number] } {
+export function edgePath(a: CNode, b: CNode, e: CEdge): { d: string; mid: [number, number]; end: [number, number]; dir: [number, number]; points: [number, number][] } {
   const [fs, ts] = e.fromSide && e.toSide ? [e.fromSide, e.toSide] : facing(a, b);
   const p = sidePoint(a, fs);
   const q = sidePoint(b, ts);
@@ -159,5 +159,5 @@ export function edgePath(a: CNode, b: CNode, e: CEdge): { d: string; mid: [numbe
   const c1: [number, number] = [p[0] + o1[0] * k, p[1] + o1[1] * k];
   const c2: [number, number] = [q[0] + o2[0] * k, q[1] + o2[1] * k];
   const mid: [number, number] = [(p[0] + 3 * c1[0] + 3 * c2[0] + q[0]) / 8, (p[1] + 3 * c1[1] + 3 * c2[1] + q[1]) / 8];
-  return { d: `M${p[0]} ${p[1]} C${c1[0]} ${c1[1]} ${c2[0]} ${c2[1]} ${q[0]} ${q[1]}`, mid, end: q, dir: [-o2[0], -o2[1]] };
+  return { d: `M${p[0]} ${p[1]} C${c1[0]} ${c1[1]} ${c2[0]} ${c2[1]} ${q[0]} ${q[1]}`, mid, end: q, dir: [-o2[0], -o2[1]], points: [p, c1, c2, q] };
 }
